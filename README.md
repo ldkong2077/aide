@@ -4,8 +4,8 @@
 
 ## Features
 
-- **12 detectors** covering AI-generated code pitfalls: package hallucination, API hallucination, stub functions, empty implementations, hardcoded values, fake URLs, swallowed errors, unhandled promises, unused declarations, unreachable code, resource leaks, and security issues
-- **10 languages**: TypeScript, JavaScript, Python, Go, Java, Rust, Ruby, PHP, C/C++, C#, Swift, Kotlin
+- **14 stable detectors** (16 total with 2 preview) covering AI-generated code pitfalls: package hallucination, API hallucination, stub functions, empty implementations, hardcoded values, fake URLs, swallowed errors, unhandled promises, unused declarations, unreachable code, resource leaks, security, structure, weak validation, and narrative comments
+- **13 languages**: Python, TypeScript, JavaScript, Go, Java, Rust, Ruby, PHP, C, C++, C#, Swift, Kotlin
 - **Pure local scan** — `aide scan` runs entirely offline, 0 token consumption
 - **LLM-assisted review** — `aide scan-llm` uses an independent LLM to reduce false positives (40-60% pre-filtered locally before LLM calls)
 - **Configurable** — `.aiderc.json` project config, CLI flags override, strict mode, confidence filtering
@@ -43,13 +43,17 @@ aide scan --format json --exit-code
 | Command | Description |
 |---------|-------------|
 | `aide scan` | Pure local scan, 0 token cost |
+| `aide scan --auto` | Auto-enable LLM reduce-fp if model configured, filter low severity |
+| `aide scan --strict` | Only high + medium severity, filter low confidence |
 | `aide scan-llm` | LLM-assisted scan for lower false positive rate |
 | `aide configure-llm` | Configure LLM provider (OpenAI, Anthropic, etc.) |
 
 ### Common Options
 
 ```
---strict              Only report high + medium severity
+--strict              Only report high + medium severity (filters low confidence)
+--auto                Auto-enable LLM reduce-fp if model configured, exclude low severity
+--preview             Enable preview detectors (narrative-comments, dead-code)
 --skip <rules>        Disable specific detectors
 --only <rules>        Only run specific detectors
 --format <fmt>        Output: default, verbose, ai, json, supervisor
@@ -74,6 +78,12 @@ aide scan --format json --exit-code
 | `unreachable-code` | Code after return/throw/break |
 | `resource-leak` | Unclosed files, connections, streams |
 | `security` | Hardcoded secrets, SQL injection, XSS, command injection |
+| `weak-validation` | Weak input validation patterns |
+| `structure` | Project structure and organization issues |
+| `narrative-comments ⚡` | Narrative/inline-comment code that should be real logic (preview) |
+| `dead-code ⚡` | Dead/unreachable code detection (preview) |
+
+> ⚡ = preview detectors, enable with `--preview` flag
 
 ## Configuration
 
@@ -99,6 +109,8 @@ Source files → Local detectors (regex + AST + registry)
                 → Local prefilter (13 rules, 0 token)
                 → [Optional] LLM review (rule-customized context)
                 → Severity + confidence filtering
+                → --strict mode removes low confidence + low severity
+                → --auto mode auto-enables reduce-fp if LLM configured
                 → Results
 ```
 
