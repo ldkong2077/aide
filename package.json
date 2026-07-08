@@ -1,0 +1,60 @@
+{
+  "name": "@aide-dev/aide",
+  "version": "2.0.0",
+  "description": "AIDE - AI coding quality inspector: detect hallucinations, stub code, and errors in AI-generated code",
+  "type": "module",
+  "bin": {
+    "aide": "./dist/cli/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "keywords": [
+    "aide",
+    "ai",
+    "cli",
+    "code-review",
+    "hallucination-detection",
+    "code-quality",
+    "ai-code-inspector"
+  ],
+  "license": "MIT",
+  "author": "AIDE Contributors",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ldkong2077/aide-monorepo.git"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "commander": "^13.0.0",
+    "chalk": "^5.4.1",
+    "glob": "^11.0.0",
+    "ora": "^8.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsup": "^8.5.0",
+    "typescript": "^5.8.0",
+    "vitest": "^3.1.0"
+  }
+}

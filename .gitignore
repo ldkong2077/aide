@@ -1,0 +1,12 @@
+node_modules/
+dist/
+coverage/
+.aide/
+.aislop/
+.turbo/
+.env
+_archive/
+.claude/
+.semgrep/
+*.map
+.DS_Store
