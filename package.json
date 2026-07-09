@@ -1,10 +1,10 @@
 {
   "name": "@aide-dev/aide",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "AIDE - AI coding quality inspector: detect hallucinations, stub code, and errors in AI-generated code",
   "type": "module",
   "bin": {
-    "aide": "./dist/cli/index.js"
+    "aide": "dist/cli/index.js"
   },
   "files": [
     "dist"
@@ -40,7 +40,7 @@
   "author": "AIDE Contributors",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ldkong2077/aide-monorepo.git"
+    "url": "git+https://github.com/ldkong2077/aide.git"
   },
   "publishConfig": {
     "access": "public"

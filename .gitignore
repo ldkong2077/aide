@@ -11,3 +11,4 @@ _archive/
 *.map
 .DS_Store
 ai-agent-code-review-workflow.md
+.npmrc
