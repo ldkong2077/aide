@@ -29,6 +29,16 @@ const DEFAULT_IGNORE = [
   'data', 'constants',   // 数据/常量目录中的 .ts/.py 文件是规则定义，不是可执行代码
 ]
 
+/** 构建产物文件名模式（匹配的文件跳过扫描，这些不是用户手写源码） */
+const BUILT_FILE_PATTERNS = [
+  /\.min\.(js|css|mjs)$/,          // 压缩产物：echarts.min.js, style.min.css
+  /\.bundle\.(js|mjs|css)$/,       // 打包产物：calc-engine.bundle.js
+  /\.chunk\.(js|mjs|css)$/,        // 代码分割产物：vendor.chunk.js
+  /\.d\.ts$/,                       // 类型声明（自动生成）
+  /\.generated\.(ts|js|mjs)$/,     // 代码生成产物
+  /\.map$/,                         // Source Map
+]
+
 /** 支持扫描的文件扩展名 */
 const CODE_EXTENSIONS = new Set([
   '.py', '.ts', '.tsx', '.js', '.jsx', '.go',
@@ -331,7 +341,10 @@ export class Scanner {
 
     return files.filter(f => {
       const ext = path.extname(f).toLowerCase()
-      return CODE_EXTENSIONS.has(ext)
+      if (!CODE_EXTENSIONS.has(ext)) return false
+      // 跳过构建产物文件（压缩/打包/生成文件，不是用户源码）
+      if (BUILT_FILE_PATTERNS.some(p => p.test(f))) return false
+      return true
     })
   }
 

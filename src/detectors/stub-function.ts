@@ -62,14 +62,15 @@ export class StubFunctionDetector implements Detector {
 
       if (body === null) continue
 
-      if (this.isBooleanPrefix(name)) continue
       if (this.isFactoryPrefix(name)) continue
       if (this.isGetterOrOverride(source, match.index)) continue
       if (this.isReactComponent(name, body)) continue
       if (this.isTypeGuard(name, source, match.index)) continue
 
       if (this.isStubBodyJS(body)) {
-        issues.push(this.createIssue(filePath, source, match.index, name, body.trim()))
+        const issue = this.createIssue(filePath, source, match.index, name, body.trim())
+        if (this.isBooleanPrefix(name)) issue.severity = 'low'
+        issues.push(issue)
       }
       funcStartRegex.lastIndex = openBraceIndex + body.length + 2
     }
@@ -78,12 +79,13 @@ export class StubFunctionDetector implements Detector {
       const name = match[1]
       const body = match[2].trim()
 
-      if (this.isBooleanPrefix(name)) continue
       if (this.isFactoryPrefix(name)) continue
       if (this.isReactComponent(name, body)) continue
 
       if (this.isStubBodyJS(body) || this.isStubArrowBodyJS(body)) {
-        issues.push(this.createIssue(filePath, source, match.index, name, body))
+        const issue = this.createIssue(filePath, source, match.index, name, body)
+        if (this.isBooleanPrefix(name)) issue.severity = 'low'
+        issues.push(issue)
       }
     }
 
@@ -93,12 +95,13 @@ export class StubFunctionDetector implements Detector {
       const body = extractBlockBody(source, openBraceIndex)
 
       if (body === null) continue
-      if (this.isBooleanPrefix(name)) continue
       if (this.isFactoryPrefix(name)) continue
       if (this.isReactComponent(name, body)) continue
 
       if (this.isStubBodyJS(body)) {
-        issues.push(this.createIssue(filePath, source, match.index, name, body.trim()))
+        const issue = this.createIssue(filePath, source, match.index, name, body.trim())
+        if (this.isBooleanPrefix(name)) issue.severity = 'low'
+        issues.push(issue)
       }
       arrowBlockStartRegex.lastIndex = openBraceIndex + body.length + 2
     }
@@ -113,7 +116,6 @@ export class StubFunctionDetector implements Detector {
     // Python AST 桥接路径：使用 CPython 解析的精确函数边界
     if (pythonAst) {
       for (const func of pythonAst.functions) {
-        if (this.isBooleanPrefix(func.name)) continue
         if (this.isFactoryPrefix(func.name)) continue
         if (this.isPythonDunder(func.name)) continue
 
@@ -128,7 +130,7 @@ export class StubFunctionDetector implements Detector {
             if (this.isStubBodyPython(trimmed)) {
               issues.push({
                 rule: this.rule,
-                severity: 'high',
+                severity: this.isBooleanPrefix(func.name) ? 'low' : 'high',
                 category: 'ai-code',
                 file: filePath,
                 line: func.startLine,
@@ -153,12 +155,13 @@ export class StubFunctionDetector implements Detector {
       const name = match[2]
       const body = match[3].trim()
 
-      if (this.isBooleanPrefix(name)) continue
       if (this.isFactoryPrefix(name)) continue
       if (this.isPythonDunder(name)) continue
 
       if (this.isStubBodyPython(body)) {
-        issues.push(this.createIssue(filePath, source, match.index, name, body))
+        const issue = this.createIssue(filePath, source, match.index, name, body)
+        if (this.isBooleanPrefix(name)) issue.severity = 'low'
+        issues.push(issue)
       }
     }
 
@@ -208,8 +211,6 @@ export class StubFunctionDetector implements Detector {
 
       // 跳过构造函数
       if (this.isJavaConstructor(source, match.index, name)) continue
-      // 跳过布尔前缀方法
-      if (this.isBooleanPrefix(name)) continue
       // 跳过 Factory 前缀方法
       if (this.isFactoryPrefix(name)) continue
       // 跳过 override 方法
@@ -217,7 +218,9 @@ export class StubFunctionDetector implements Detector {
       if (/@Override/.test(before)) continue
 
       if (this.isStubBodyJava(body)) {
-        issues.push(this.createIssue(filePath, source, match.index, name, body.trim()))
+        const issue = this.createIssue(filePath, source, match.index, name, body.trim())
+        if (this.isBooleanPrefix(name)) issue.severity = 'low'
+        issues.push(issue)
       }
       methodStartRegex.lastIndex = openBraceIndex + body.length + 2
     }
@@ -243,13 +246,14 @@ export class StubFunctionDetector implements Detector {
       const body = extractBlockBody(source, openBraceIndex)
       if (body === null) continue
 
-      if (this.isBooleanPrefix(name)) continue
       if (this.isFactoryPrefix(name)) continue
       // 跳过 init 函数
       if (name === 'init' || name === 'main') continue
 
       if (this.isStubBodyGo(body)) {
-        issues.push(this.createIssue(filePath, source, match.index, name, body.trim()))
+        const issue = this.createIssue(filePath, source, match.index, name, body.trim())
+        if (this.isBooleanPrefix(name)) issue.severity = 'low'
+        issues.push(issue)
       }
       funcStartRegex.lastIndex = openBraceIndex + body.length + 2
     }
@@ -276,7 +280,6 @@ export class StubFunctionDetector implements Detector {
       const body = extractBlockBody(source, openBraceIndex)
       if (body === null) continue
 
-      if (this.isBooleanPrefix(name)) continue
       if (this.isFactoryPrefix(name)) continue
       // 跳过 new / default 函数
       if (name === 'new' || name === 'default') continue
@@ -284,7 +287,9 @@ export class StubFunctionDetector implements Detector {
       if (filePath.endsWith('.rs') && /#\[test\]/.test(source.substring(Math.max(0, match.index - 100), match.index))) continue
 
       if (this.isStubBodyRust(body)) {
-        issues.push(this.createIssue(filePath, source, match.index, name, body.trim()))
+        const issue = this.createIssue(filePath, source, match.index, name, body.trim())
+        if (this.isBooleanPrefix(name)) issue.severity = 'low'
+        issues.push(issue)
       }
       funcStartRegex.lastIndex = openBraceIndex + body.length + 2
     }

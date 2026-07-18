@@ -80,94 +80,98 @@ export function deleteModelConfig(name: string): boolean {
 
 // ==================== 交互式配置 ====================
 
-const rl = readline.createInterface({
-  input: process.stdin,
-  output: process.stdout,
-})
-
-function ask(question: string): Promise<string> {
+function ask(rl: readline.Interface, question: string): Promise<string> {
   return new Promise((resolve) => {
     rl.question(question, (answer) => resolve(answer.trim()))
   })
 }
 
-async function selectFrom(prompt: string, options: Array<{ label: string; value: string }>): Promise<string> {
+async function selectFrom(rl: readline.Interface, prompt: string, options: Array<{ label: string; value: string }>): Promise<string> {
   console.log(prompt)
   for (let i = 0; i < options.length; i++) {
     console.log(`  ${i + 1}. ${options[i]!.label}`)
   }
-  const answer = await ask('  请选择 (输入序号): ')
+  const answer = await ask(rl, '  请选择 (输入序号): ')
   const idx = parseInt(answer, 10) - 1
   if (idx >= 0 && idx < options.length) return options[idx]!.value
   return options[0]!.value // 默认选第一个
 }
 
 export async function configureModelInteractive(): Promise<void> {
-  console.log(chalk.bold('\n🤖 AIDE LLM 模型配置'))
-  console.log('═'.repeat(50))
-  console.log('配置一个自定义的 LLM 模型供应商\n')
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  })
 
-  // 1. 名称
-  const name = await ask('  模型名称 (如: 智谱 GLM): ')
-  if (!name) {
-    console.log(chalk.yellow('  名称不能为空，取消配置。'))
-    return
+  try {
+    console.log(chalk.bold('\n🤖 AIDE LLM 模型配置'))
+    console.log('═'.repeat(50))
+    console.log('配置一个自定义的 LLM 模型供应商\n')
+
+    // 1. 名称
+    const name = await ask(rl, '  模型名称 (如: 智谱 GLM): ')
+    if (!name) {
+      console.log(chalk.yellow('  名称不能为空，取消配置。'))
+      return
+    }
+
+    // 2. 预设选择
+    const presetOptions = [
+      { label: '⊙ 手动输入（完全自定义）', value: 'custom' },
+      ...PRESETS.map(p => ({ label: `◎ ${p.name}`, value: p.name })),
+    ]
+
+    const selectedPreset = await selectFrom(rl, '  选择预设模板（可选）:', presetOptions)
+
+    let baseUrl = ''
+    let apiFormat: LlmApiFormat = 'chat-completions'
+    let model = ''
+
+    if (selectedPreset === 'custom') {
+      baseUrl = await ask(rl, '  Base URL: ')
+      if (!baseUrl) baseUrl = 'https://api.example.com/v1'
+
+      const formatOptions = API_FORMATS.map(f => ({ label: f.label, value: f.value }))
+      apiFormat = await selectFrom(rl, '  API 格式:', formatOptions) as LlmApiFormat
+
+      model = await ask(rl, '  模型名称: ')
+      if (!model) model = 'gpt-4o-mini'
+    } else {
+      const preset = PRESETS.find(p => p.name === selectedPreset)!
+      baseUrl = await ask(rl, `  Base URL [${preset.baseUrl}]: `) || preset.baseUrl
+      apiFormat = preset.apiFormat
+      model = await ask(rl, `  模型名称 [${preset.model}]: `) || preset.model
+    }
+
+    // 3. API Key
+    const apiKey = await ask(rl, '  API Key: ')
+    if (!apiKey) {
+      console.log(chalk.red('  API Key 不能为空，取消配置。'))
+      return
+    }
+
+    // 4. 超时
+    const timeoutStr = await ask(rl, '  超时毫秒数 [30000]: ')
+    const timeout = timeoutStr ? parseInt(timeoutStr, 10) : 30000
+
+    // 5. 保存
+    const config: LlmModelConfig = {
+      name,
+      baseUrl,
+      apiKey,
+      model,
+      apiFormat,
+      timeout,
+    }
+
+    saveModelConfig(config)
+    console.log(chalk.green(`\n✓ 模型 "${name}" 已保存至 ${CONFIG_FILE}`))
+    console.log(`  URL:    ${baseUrl}`)
+    console.log(`  模型:   ${model}`)
+    console.log(`  格式:   ${apiFormat}`)
+  } finally {
+    rl.close()
   }
-
-  // 2. 预设选择
-  const presetOptions = [
-    { label: '⊙ 手动输入（完全自定义）', value: 'custom' },
-    ...PRESETS.map(p => ({ label: `◎ ${p.name}`, value: p.name })),
-  ]
-
-  const selectedPreset = await selectFrom('  选择预设模板（可选）:', presetOptions)
-
-  let baseUrl = ''
-  let apiFormat: LlmApiFormat = 'chat-completions'
-  let model = ''
-
-  if (selectedPreset === 'custom') {
-    baseUrl = await ask('  Base URL: ')
-    if (!baseUrl) baseUrl = 'https://api.example.com/v1'
-
-    const formatOptions = API_FORMATS.map(f => ({ label: f.label, value: f.value }))
-    apiFormat = await selectFrom('  API 格式:', formatOptions) as LlmApiFormat
-
-    model = await ask('  模型名称: ')
-    if (!model) model = 'gpt-4o-mini'
-  } else {
-    const preset = PRESETS.find(p => p.name === selectedPreset)!
-    baseUrl = await ask(`  Base URL [${preset.baseUrl}]: `) || preset.baseUrl
-    apiFormat = preset.apiFormat
-    model = await ask(`  模型名称 [${preset.model}]: `) || preset.model
-  }
-
-  // 3. API Key
-  const apiKey = await ask('  API Key: ')
-  if (!apiKey) {
-    console.log(chalk.red('  API Key 不能为空，取消配置。'))
-    return
-  }
-
-  // 4. 超时
-  const timeoutStr = await ask('  超时毫秒数 [30000]: ')
-  const timeout = timeoutStr ? parseInt(timeoutStr, 10) : 30000
-
-  // 5. 保存
-  const config: LlmModelConfig = {
-    name,
-    baseUrl,
-    apiKey,
-    model,
-    apiFormat,
-    timeout,
-  }
-
-  saveModelConfig(config)
-  console.log(chalk.green(`\n✓ 模型 "${name}" 已保存至 ${CONFIG_FILE}`))
-  console.log(`  URL:    ${baseUrl}`)
-  console.log(`  模型:   ${model}`)
-  console.log(`  格式:   ${apiFormat}`)
 }
 
 // ==================== 列出模型 ====================

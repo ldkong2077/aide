@@ -386,6 +386,18 @@ export class SecurityDetector implements Detector {
       while ((match = regex.exec(code)) !== null) {
         const line = getLineNumber(code, match.index!)
         if (isInNonCode(code, match.index)) continue
+
+        // 去重：checkEvalUsage 已对同一位置报过 eval，升级为 critical
+        const existingIdx = issues.findIndex(
+          i => i.line === line && i.rule === this.rule && /eval|exec|Function/i.test(i.message)
+        )
+        if (existingIdx >= 0) {
+          issues[existingIdx].severity = 'critical'
+          issues[existingIdx].message = message
+          issues[existingIdx].suggestion = '使用安全的替代方案：JSON.parse() 解析数据，或使用沙箱环境执行'
+          continue
+        }
+
         issues.push({
           rule: this.rule,
           severity: 'critical',

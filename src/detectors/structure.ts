@@ -87,7 +87,8 @@ export class StructureDetector implements Detector {
     }
 
     // Python 项目缺少 requirements.txt / pyproject.toml
-    if (hasPyFiles) {
+    // 只有项目没有 package.json 时才检查，避免对包含 .py 文件的 TS 项目误报
+    if (hasPyFiles && !hasPackageJson) {
       const hasRequirements = fs.existsSync(path.join(projectPath, 'requirements.txt'))
       const hasPyproject = fs.existsSync(path.join(projectPath, 'pyproject.toml'))
       const hasSetupPy = fs.existsSync(path.join(projectPath, 'setup.py'))
@@ -237,9 +238,11 @@ export class StructureDetector implements Detector {
         cwd: projectPath,
         ignore: ignorePatterns,
         nodir: true,
-        // 只需知道是否存在，找到第一个就停止
-        // 限制最大深度避免在大项目中过慢
       })
+      // .d.ts 是类型声明文件不算 TS 源码，避免纯 JS 项目误报缺 tsconfig
+      if (ext === '.ts') {
+        return files.some(f => !f.endsWith('.d.ts'))
+      }
       return files.length > 0
     } catch {
       return false

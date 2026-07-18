@@ -231,7 +231,26 @@ private getLineAt(source: string, index: number): string {
       if (!fullLine) continue
 
       const callMatch = /^(\w+(?:\.\w+)*)\s*\(/.exec(fullLine)
-      if (!callMatch) continue
+      if (!callMatch) {
+        // 检查 const/let/var 赋值型 Promise 调用是否缺少 await
+        const assignMatch = /^(?:const|let|var)\s+\w+\s*=\s*(\w+(?:\.\w+)*)\s*\(/.exec(fullLine)
+        if (assignMatch && !/\bawait\b/.test(fullLine)) {
+          const callPart = fullLine.substring(fullLine.indexOf('=') + 1).trim()
+          if (this.isLikelyPromiseCall(callPart)) {
+            issues.push({
+              rule: this.rule,
+              severity: 'medium',
+              category: 'ai-code',
+              file: filePath,
+              line: i + 1,
+              message: `异步调用赋值未使用 await: "${fullLine.slice(0, 50)}"`,
+              snippet: fullLine.slice(0, 80),
+              suggestion: '请添加 await 确保异步操作完成后再使用结果',
+            })
+          }
+        }
+        continue
+      }
 
       // 跳过已有 await / return / 赋值 / 条件 / .then / .catch 的行
       if (/^\s*(?:await|return|const|let|var|=|if|while|for|\.then|\.catch)/.test(fullLine)) continue
@@ -525,11 +544,7 @@ private getLineAt(source: string, index: number): string {
     // 4. DOM 操作（classList.add/remove/toggle）
     if (/classList\.\w+\(/.test(snippet)) return true
     
-    // 5. 单行链（风险较低）
-    const chainParts = snippet.split(/\.then\s*\(/)
-    if (chainParts.length <= 2) return true  // 只有一个 .then()
-    
-    // 6. 测试文件中的 .then()
+    // 5. 测试文件中的 .then()
     if (/test|spec|__test__|__spec__/.test(filePath)) return true
     
     return false
