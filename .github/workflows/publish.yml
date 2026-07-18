@@ -38,6 +38,20 @@ jobs:
       - name: Build (prepublishOnly 也会再构建一次)
         run: npm run build
 
+      - name: Check if version already published
+        id: check
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          if npm view "@aide-dev/aide@$VERSION" version >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::@aide-dev/aide@$VERSION 已存在于 npm，跳过发布（仅验证构建/测试）"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::@aide-dev/aide@$VERSION 未发布，将走 OIDC 可信发布"
+          fi
+
       - name: Publish with provenance (OIDC)
+        if: steps.check.outputs.exists != 'true'
         run: npm publish --provenance --access public
         # 不使用 NODE_AUTH_TOKEN / NPM_TOKEN: Trusted Publishing 自动用 OIDC 身份发布
