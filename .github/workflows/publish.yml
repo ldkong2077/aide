@@ -1,0 +1,43 @@
+name: Publish to npm (Trusted Publishing / OIDC)
+
+# 触发: 推送版本标签时发布, 例如 `git push origin v2.1.1`
+on:
+  push:
+    tags:
+      - 'v*'
+
+# 关键权限: id-token: write 用于向 npm 申请 OIDC 令牌 (无需长期有效的 NPM_TOKEN)
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: 'https://registry.npmjs.org'
+          # 注意: 这里不要设置 token。OIDC 可信发布由 id-token: write 自动提供,
+          # npm publish 会使用 GitHub 下发的临时令牌, 无需 NPM_TOKEN 密钥。
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Test
+        run: npm test
+
+      - name: Build (prepublishOnly 也会再构建一次)
+        run: npm run build
+
+      - name: Publish with provenance (OIDC)
+        run: npm publish --provenance --access public
+        # 不使用 NODE_AUTH_TOKEN / NPM_TOKEN: Trusted Publishing 自动用 OIDC 身份发布
