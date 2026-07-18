@@ -214,7 +214,7 @@ export class Scanner {
     const confidenceOrder: Record<Confidence, number> = {
       high: 0, medium: 1, low: 2,
     }
-    const minConfidence = options.minConfidence || 'low'
+    const minConfidence = options.minConfidence || 'medium'
     const confidenceFilteredIssues = filteredIssues.filter(
       issue => confidenceOrder[issue.confidence || 'medium'] <= confidenceOrder[minConfidence]
     )

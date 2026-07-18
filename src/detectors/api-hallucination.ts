@@ -26,7 +26,7 @@ export class ApiHallucinationDetector implements Detector {
 
   private static readonly compiledRules = new Map<Language, CompiledHallucinationAPI[]>()
   /** 需要类型上下文检查的规则 */
-  private static readonly CONTEXT_CHECK_RULES = new Set(['\\.merge\\(', '\\.flatten\\(\\)'])
+  private static readonly CONTEXT_CHECK_RULES = new Set(['\\.merge\\(', '\\.flatten\\(\\)', '\\.groupBy\\('])
 
   detect(ctx: DetectorContext): Issue[] {
     const { source, language, filePath } = ctx
@@ -84,7 +84,8 @@ export class ApiHallucinationDetector implements Detector {
 
   /**
    * 检查是否应该基于上下文跳过检测
-   * 对于 .merge() 和 .flatten()，如果前面有 DataFrame/numpy 相关变量，则跳过
+   * 对于 .merge()/.flatten()，如果前面有 DataFrame/numpy 相关变量，则跳过
+   * 对于 .groupBy()，如果前面有 Prisma/Sequelize/Lodash 等 ORM/库调用，则跳过
    */
   private shouldSkipByContext(source: string, matchIndex: number, pattern: string): boolean {
     const before = source.substring(Math.max(0, matchIndex - 300), matchIndex)
@@ -109,6 +110,20 @@ export class ApiHallucinationDetector implements Detector {
         if (/\b(?:arr|array|ndarray|matrix|tensor|data|result|flattened)\b/i.test(before)) return true
       }
       // 如果导入了 pandas，DataFrame 没有 flatten() 方法，保持检测
+    }
+
+    if (pattern === '\\.groupBy\\(') {
+      // Prisma/Sequelize/TypeORM/Mongoose/Lodash 等 ORM/库都有 groupBy 方法
+      // 检查整个源码中是否有这些库的导入或调用模式（不只是匹配位置前 300 字符）
+      const fullSource = source
+      const hasOrmContext = /\bprisma\.\w+\.\w+\(/.test(fullSource)
+        || /\b(?:sequelize|Sequelize)\b/.test(fullSource)
+        || /\b(?:Model|QueryInterface)\.\w+\(/.test(fullSource)
+        || /import.*(?:prisma|sequelize|typeorm|mongoose)/.test(fullSource)
+        || /require.*(?:prisma|sequelize|typeorm|mongoose)/.test(fullSource)
+        || /\b_(?:groupBy|chain|keyBy)\(/.test(fullSource)  // Lodash
+        || /\blodash\b/.test(fullSource)
+      if (hasOrmContext) return true
     }
 
     return false

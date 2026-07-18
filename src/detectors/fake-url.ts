@@ -8,7 +8,7 @@
 
 import { isTestFile } from '../types/index.js'
 import { getLineNumber } from '../core/utils.js'
-import type { Detector, DetectorContext, Issue } from '../types/index.js'
+import type { Detector, DetectorContext, Issue, Confidence } from '../types/index.js'
 
 /** 已知真实 API 域名白名单 */
   const KNOWN_API_DOMAINS = new Set([
@@ -91,6 +91,7 @@ export class FakeUrlDetector implements Detector {
         message: `可能伪造的 API URL: "${fullUrl}" (域名 "${domain}" 不在已知白名单中)`,
         snippet: fullUrl,
         suggestion: `请确认此 API URL 是否真实存在。AI 生成的代码可能包含不存在的 API 端点`,
+        confidence: 'high' as Confidence,
       })
     }
 

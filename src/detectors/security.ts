@@ -216,7 +216,8 @@ export class SecurityDetector implements Detector {
 
         issues.push({
           rule: this.rule,
-          severity: 'high',
+          // 无外部输入特征的 innerHTML 降级为 low（模板字面量拼接内部数据不是真正的 XSS 风险）
+          severity: this.isExternalInputInnerHTML(code, match.index) ? 'high' : 'low',
           category: 'security',
           file: filePath,
           line,
@@ -365,7 +366,28 @@ export class SecurityDetector implements Detector {
     return placeholders.some(p => lower.includes(p.toLowerCase()))
   }
 
-  /** 检测 AI 生成代码特有的安全模式 */
+  /** 判断 innerHTML 赋值是否包含外部输入特征 */
+  private isExternalInputInnerHTML(code: string, matchIndex: number): boolean {
+    const lineStart = code.lastIndexOf('\n', matchIndex) + 1
+    const lineEnd = code.indexOf('\n', matchIndex)
+    const fullLine = code.slice(lineStart, lineEnd === -1 ? code.length : lineEnd)
+    // 检查赋值右侧是否包含外部输入来源
+    const rightSide = fullLine.substring(fullLine.indexOf('=') + 1)
+    const externalInputPatterns = [
+      /\breq(?:uest)?\./,          // req.body, req.query, request.params
+      /\bparams\b/,                // URL 参数
+      /\bquery\b/,                 // 查询字符串
+      /\.value\b/,                 // 表单输入值
+      /\.innerHTML\b/,             // 来自其他 innerHTML
+      /\blocalStorage\b/,          // 本地存储
+      /\bsessionStorage\b/,        // 会话存储
+      /\bdocument\.cookie/,        // Cookie
+      /\bwindow\.location/,        // URL
+      /\buserInput\b/i,            // 显式命名的用户输入
+    ]
+    return externalInputPatterns.some(p => p.test(rightSide))
+  }
+
   private checkAISpecificSecurity(code: string, language: string, filePath: string, issues: Issue[]): void {
     // 1. eval/exec 处理不受信输入（AI 常用 eval 做"动态处理"）
     const evalDangerPatterns: { regex: RegExp; message: string }[] = []

@@ -6,7 +6,7 @@
 
 import { isTestFile } from '../types/index.js'
 import { getLineNumber } from '../core/utils.js'
-import type { Detector, DetectorContext, Issue } from '../types/index.js'
+import type { Detector, DetectorContext, Issue, Confidence } from '../types/index.js'
 import type { ParseResult } from '../core/ast-parser.js'
 
 /** 关键操作关键词（需要错误处理） */
@@ -72,6 +72,7 @@ export class UnhandledPromiseDetector implements Detector {
         message: 'Java CompletableFuture 调用缺少异常处理',
         snippet: line.trim().slice(0, 80),
         suggestion: '请添加 .exceptionally() 或 .handle() 来处理异步操作的异常',
+        confidence: 'medium' as Confidence,
       })
     }
   }
@@ -90,6 +91,7 @@ export class UnhandledPromiseDetector implements Detector {
         message: 'Java Future.get() 调用缺少 try-catch',
         snippet: line.trim().slice(0, 80),
         suggestion: '请将 Future.get() 包裹在 try-catch 块中处理 ExecutionException 和 InterruptedException',
+        confidence: 'medium' as Confidence,
       })
     }
   }
@@ -139,6 +141,7 @@ private getLineAt(source: string, index: number): string {
           message: `await 关键操作 "${expr.slice(0, 50)}" 缺少 try/except`,
           snippet: match[0].trim(),
           suggestion: '请将 await 关键操作包裹在 try/except 块中处理可能的异常',
+          confidence: 'low' as Confidence,
         })
       }
     }
@@ -191,6 +194,7 @@ private getLineAt(source: string, index: number): string {
                 message: '.then() 链缺少 .catch() 错误处理',
                 snippet: chainSnippet.slice(0, 80),
                 suggestion: '请在 .then() 链末尾添加 .catch() 处理可能的 Promise 拒绝',
+                confidence: 'high' as Confidence,
               })
             }
           }
@@ -213,6 +217,7 @@ private getLineAt(source: string, index: number): string {
           message: '.then() 链缺少 .catch() 错误处理',
           snippet: chainSnippet.slice(0, 80),
           suggestion: '请在 .then() 链末尾添加 .catch() 处理可能的 Promise 拒绝',
+          confidence: 'high' as Confidence,
         })
       }
     }
@@ -246,6 +251,7 @@ private getLineAt(source: string, index: number): string {
               message: `异步调用赋值未使用 await: "${fullLine.slice(0, 50)}"`,
               snippet: fullLine.slice(0, 80),
               suggestion: '请添加 await 确保异步操作完成后再使用结果',
+              confidence: 'medium' as Confidence,
             })
           }
         }
@@ -258,6 +264,8 @@ private getLineAt(source: string, index: number): string {
       if (/^\s*(?:function|class|export|import|interface|type)\b/.test(fullLine)) continue
       // 跳过在 .then/.catch 链中的调用
       if (/\.\s*(?:then|catch)\s*\(/.test(fullLine)) continue
+      // 跳过事件监听器注册（.on()/.once()/.addEventListener() 是同步操作，不是 Promise）
+      if (/\.\s*(?:on|once|addEventListener|removeEventListener|off)\s*\(/.test(fullLine)) continue
 
       // 检查是否为已知返回 Promise 的调用
       if (this.isLikelyPromiseCall(fullLine)) {
@@ -270,6 +278,7 @@ private getLineAt(source: string, index: number): string {
           message: `异步调用 "${fullLine.slice(0, 50)}" 未使用 await 且未添加 .catch()`,
           snippet: fullLine.slice(0, 80),
           suggestion: '请添加 await 或 .catch() 来处理此异步操作的可能错误',
+          confidence: 'medium' as Confidence,
         })
       }
     }
@@ -313,6 +322,7 @@ private getLineAt(source: string, index: number): string {
           message: `await 关键操作 "${expr.slice(0, 50)}" 缺少 try/catch`,
           snippet: match[0].trim(),
           suggestion: '请将 await 关键操作包裹在 try/catch 块中处理可能的异常',
+          confidence: 'low' as Confidence,
         })
       }
     }
@@ -322,8 +332,10 @@ private getLineAt(source: string, index: number): string {
 
   /** 判断是否为可能返回 Promise 的调用 */
   private isLikelyPromiseCall(line: string): boolean {
-    // fetch / axios / 其他常见异步 API
-    return /\b(?:fetch|axios)\b/.test(line) ||
+    // 排除已知同步工厂方法（返回对象实例，不是 Promise）
+    if (/\b(?:axios|Router|express|koa|app|server)\s*\.\s*(?:create|get|post|put|delete|use|listen|set|on)\b/.test(line)) return false
+    // fetch / 其他常见异步 API
+    return /\bfetch\b/.test(line) ||
       // 以 Async 结尾的函数调用
       /\w+Async\s*\(/.test(line) ||
       // db 操作

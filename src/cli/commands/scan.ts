@@ -32,7 +32,7 @@ export function scanCommand(): Command {
     .option('--exit-code', '发现问题时以退出码 1 退出（适用于 CI/脚本）')
     .option('--offline', '禁用网络请求（在线注册表验证等）')
     .option('--preview', '启用预览模式（包含不稳定的检测器，如 dead-code）')
-    .option('--min-confidence <level>', '最低置信度: high, medium, low', 'low')
+    .option('--min-confidence <level>', '最低置信度: high, medium, low', 'medium')
     .option('--strict', '严格模式：只报告 high 和 medium 级别问题')
     .option('--registry-timeout <ms>', '注册表查询超时毫秒数（默认 5000）')
     .action(async (target: string | undefined, opts) => {
@@ -51,7 +51,7 @@ export function scanCommand(): Command {
         offline: opts.offline ?? rc.offline ?? false,
         preview: opts.preview ?? rc.preview ?? false,
         strict: opts.strict ?? rc.strict ?? false,
-        minConfidence: (opts.minConfidence !== 'low' ? parseConfidence(opts.minConfidence) : rc.minConfidence) || 'low',
+        minConfidence: parseConfidence(opts.minConfidence) || parseConfidence(rc.minConfidence) || 'medium',
         registryTimeout: opts.registryTimeout ? parseInt(opts.registryTimeout, 10) : rc.registryTimeout,
       }
 
@@ -174,7 +174,7 @@ export function checkCommand(): Command {
     .option('--lang <lang>', '输出语言: zh-CN, en', 'zh-CN')
     .option('--only <rules>', '只启用指定检测器（逗号分隔）')
     .option('--skip <rules>', '禁用指定检测器（逗号分隔）')
-    .option('--min-confidence <level>', '最低置信度: high, medium, low', 'low')
+    .option('--min-confidence <level>', '最低置信度: high, medium, low', 'medium')
     .option('--exit-code', '发现问题时以退出码 1 退出（适用于 CI/脚本）')
     .option('--offline', '禁用网络请求（在线注册表验证等）')
     .action(async (file: string, opts) => {

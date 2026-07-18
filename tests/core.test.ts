@@ -105,14 +105,14 @@ describe('localPrefilter', () => {
 
 // ===== Detector Registry =====
 describe('detector registry', () => {
-  it('createDetectors 应返回 14 个稳定检测器', () => {
+  it('createDetectors 应返回 11 个稳定检测器', () => {
     const detectors = createDetectors()
-    expect(detectors.length).toBe(14)
+    expect(detectors.length).toBe(11)
   })
 
-  it('createPreviewDetectors 应返回 2 个预览检测器', () => {
+  it('createPreviewDetectors 应返回 5 个预览检测器', () => {
     const detectors = createPreviewDetectors()
-    expect(detectors.length).toBe(2)
+    expect(detectors.length).toBe(5)
   })
 
   it('getAllDetectorInfo 应返回所有检测器元信息', () => {

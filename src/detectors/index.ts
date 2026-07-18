@@ -36,7 +36,7 @@ export interface DetectorInfo {
   preview: boolean
 }
 
-/** 稳定检测器类列表 */
+/** 稳定检测器类列表（只保留 AI 代码指纹检测，低误报） */
 const STABLE_DETECTORS = [
   PackageHallucinationDetector,
   ApiHallucinationDetector,
@@ -45,17 +45,17 @@ const STABLE_DETECTORS = [
   FakeUrlDetector,
   StubFunctionDetector,
   EmptyImplDetector,
-  SwallowedErrorDetector,
   UnhandledPromiseDetector,
-  WeakValidationDetector,
   HardcodedValueDetector,
   ResourceLeakDetector,
   SecurityDetector,
-  StructureDetector,
 ]
 
-/** 预览检测器类列表 */
+/** 预览检测器类列表（通用代码质量问题，需 --preview 启用） */
 const PREVIEW_DETECTORS = [
+  StructureDetector,
+  SwallowedErrorDetector,
+  WeakValidationDetector,
   DeadCodeDetector,
   NarrativeCommentsDetector,
 ]

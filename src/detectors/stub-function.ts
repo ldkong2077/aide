@@ -5,7 +5,7 @@
 
 import { isTestFile } from '../types/index.js'
 import { getLineNumber, extractBlockBody } from '../core/utils.js'
-import type { Detector, DetectorContext, Issue } from '../types/index.js'
+import type { Detector, DetectorContext, Issue, Confidence } from '../types/index.js'
 import type { PythonASTResult } from '../core/python-ast-bridge.js'
 
 /** 布尔前缀函数名（这些返回 true/false 可能是合理的） */
@@ -137,6 +137,7 @@ export class StubFunctionDetector implements Detector {
                 message: `Stub 函数 "${func.name}" 只返回简单值: ${trimmed}`,
                 snippet: trimmed,
                 suggestion: `请为函数 "${func.name}" 添加实际实现逻辑，而非返回占位值`,
+                confidence: 'high' as Confidence,
               })
             }
             break
@@ -344,6 +345,7 @@ export class StubFunctionDetector implements Detector {
       message: `Stub 函数 "${name}" 只返回简单值: ${body.trim()}`,
       snippet: body.trim(),
       suggestion: `请为函数 "${name}" 添加实际实现逻辑，而非返回占位值`,
+      confidence: 'high' as Confidence,
     }
   }
 }

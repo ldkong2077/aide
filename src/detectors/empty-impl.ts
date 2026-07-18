@@ -5,7 +5,7 @@
 
 import { isTestFile } from '../types/index.js'
 import { getLineNumber, extractBlockBody } from '../core/utils.js'
-import type { Detector, DetectorContext, Issue } from '../types/index.js'
+import type { Detector, DetectorContext, Issue, Confidence } from '../types/index.js'
 import type { PythonASTResult } from '../core/python-ast-bridge.js'
 
 export class EmptyImplDetector implements Detector {
@@ -184,6 +184,7 @@ export class EmptyImplDetector implements Detector {
             message: `空实现函数 "${func.name}"`,
             snippet: `${func.name}()`,
             suggestion: `请为函数 "${func.name}" 添加实际实现，或使用 raise NotImplementedError 标记为待实现`,
+            confidence: 'high' as Confidence,
           })
         }
       }
@@ -528,6 +529,7 @@ export class EmptyImplDetector implements Detector {
       message: `空实现函数 "${name}"`,
       snippet: `${name}()`,
       suggestion: `请为函数 "${name}" 添加实际实现，或使用 throw new Error('Not implemented') 标记为待实现`,
+      confidence: 'high' as Confidence,
     }
   }
 }

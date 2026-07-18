@@ -11,7 +11,7 @@ import * as path from 'path'
 import { glob } from 'glob'
 import { isTestFile } from '../types/index.js'
 import { getLineNumber } from '../core/utils.js'
-import type { Detector, DetectorContext, Issue, Language } from '../types/index.js'
+import type { Detector, DetectorContext, Issue, Language, Confidence } from '../types/index.js'
 import type { CodeGraph } from '../core/code-graph.js'
 
 /**
@@ -193,6 +193,7 @@ export class PackageHallucinationDetector implements Detector {
         message: `可能不存在的Python包: "${moduleName}"`,
         snippet: match[0].trim(),
         suggestion: `请确认 "${moduleName}" 是否为真实存在的包。如果不存在，请删除此导入；如果存在但未安装，请运行: pip install ${moduleName}`,
+        confidence: 'high' as Confidence,
         meta: { packageName: moduleName, language: 'python' },
       })
     }
@@ -563,21 +564,9 @@ export class PackageHallucinationDetector implements Detector {
 
       if (this.isTrustedPackage(modulePath, language)) continue
 
-      // 相对路径导入
+      // 相对路径导入 — 跳过，由 TypeScript 编译器 / 构建工具负责
+      // aide 的相对路径解析在 ESM monorepo 等场景下误报率高，不具备可靠检测能力
       if (modulePath.startsWith('.') || modulePath.startsWith('/')) {
-        if (!this.resolveJSRelativePath(modulePath, fileDir, projectPath)) {
-          issues.push({
-        rule: this.rule,
-        severity: 'high',
-        category: 'hallucination',
-        file: filePath || '',
-        line,
-        message: `相对路径导入不存在: "${modulePath}"`,
-        snippet: match[0].trim(),
-        suggestion: `请确认文件路径 "${modulePath}" 是否正确`,
-        meta: { packageName: modulePath, language: language === 'typescript' ? 'typescript' : 'javascript', importType: 'relative' },
-      })
-        }
         continue
       }
 
@@ -597,6 +586,7 @@ export class PackageHallucinationDetector implements Detector {
         message: `可能不存在的npm包: "${packageName}"`,
         snippet: match[0].trim(),
         suggestion: `请确认 "${packageName}" 是否为真实存在的包。如果不存在，请删除此导入；如果存在但未安装，请运行: npm install ${packageName}`,
+        confidence: 'high' as Confidence,
         meta: { packageName, language: language === 'typescript' ? 'typescript' : 'javascript' },
       })
     }
@@ -745,6 +735,7 @@ export class PackageHallucinationDetector implements Detector {
       message: `可能不存在的Go包: "${importPath}"`,
       snippet: `import "${importPath}"`,
       suggestion: `请确认 "${importPath}" 是否在 go.mod 中声明，可运行: go get ${importPath}`,
+      confidence: 'high' as Confidence,
       meta: { packageName: importPath, language: 'go' },
     })
   }
@@ -797,6 +788,7 @@ export class PackageHallucinationDetector implements Detector {
         message: `可能不存在的Java包: "${importPath}"`,
         snippet: match[0].trim(),
         suggestion: `请确认 "${importPath}" 是否为真实存在的包`,
+        confidence: 'high' as Confidence,
         meta: { packageName: importPath, language: 'java' },
       })
     }
@@ -835,6 +827,7 @@ export class PackageHallucinationDetector implements Detector {
         message: `可能不存在的Rust crate: "${rootCrate}"`,
         snippet: match[0].trim(),
         suggestion: `请确认 "${rootCrate}" 是否在 Cargo.toml 中声明`,
+        confidence: 'high' as Confidence,
         meta: { packageName: rootCrate, language: 'rust' },
       })
     }
@@ -879,6 +872,7 @@ export class PackageHallucinationDetector implements Detector {
         message: `可能不存在的Ruby gem: "${moduleName}"`,
         snippet: match[0].trim(),
         suggestion: `请确认 "${moduleName}" 是否为真实存在的 gem`,
+        confidence: 'high' as Confidence,
         meta: { packageName: moduleName, language: 'ruby' },
       })
     }
@@ -921,6 +915,7 @@ export class PackageHallucinationDetector implements Detector {
         message: `可能不存在的PHP命名空间: "${namespace}"`,
         snippet: match[0].trim(),
         suggestion: `请确认 "${namespace}" 是否为真实存在的包`,
+        confidence: 'high' as Confidence,
         meta: { packageName: namespace, language: 'php' },
       })
     }
@@ -943,6 +938,7 @@ export class PackageHallucinationDetector implements Detector {
         message: `相对路径引用不存在: "${requirePath}"`,
         snippet: match[0].trim(),
         suggestion: `请确认文件路径 "${requirePath}" 是否正确`,
+        confidence: 'high' as Confidence,
         meta: { packageName: requirePath, language: 'php', importType: 'relative' },
       })
     }
@@ -972,6 +968,7 @@ export class PackageHallucinationDetector implements Detector {
         message: `可能不存在的C头文件: "${headerName}"`,
         snippet: match[0].trim(),
         suggestion: `请确认 "${headerName}" 是否为真实存在的头文件`,
+        confidence: 'high' as Confidence,
         meta: { packageName: headerName, language: 'c' },
       })
     }
@@ -1002,6 +999,7 @@ export class PackageHallucinationDetector implements Detector {
         message: `可能不存在的C++头文件: "${headerName}"`,
         snippet: match[0].trim(),
         suggestion: `请确认 "${headerName}" 是否为真实存在的头文件`,
+        confidence: 'high' as Confidence,
         meta: { packageName: headerName, language: 'cpp' },
       })
     }
@@ -1033,6 +1031,7 @@ export class PackageHallucinationDetector implements Detector {
         message: `可能不存在的Kotlin包: "${importPath}"`,
         snippet: match[0].trim(),
         suggestion: `请确认 "${importPath}" 是否为真实存在的包`,
+        confidence: 'high' as Confidence,
         meta: { packageName: importPath, language: 'kotlin' },
       })
     }
@@ -1062,6 +1061,7 @@ export class PackageHallucinationDetector implements Detector {
         message: `可能不存在的Swift模块: "${moduleName}"`,
         snippet: match[0].trim(),
         suggestion: `请确认 "${moduleName}" 是否为真实存在的框架或模块`,
+        confidence: 'high' as Confidence,
         meta: { packageName: moduleName, language: 'swift' },
       })
     }
@@ -1093,6 +1093,7 @@ export class PackageHallucinationDetector implements Detector {
         message: `可能不存在的C#命名空间: "${namespace}"`,
         snippet: match[0].trim(),
         suggestion: `请确认 "${namespace}" 是否为真实存在的命名空间`,
+        confidence: 'high' as Confidence,
         meta: { packageName: namespace, language: 'csharp' },
       })
     }

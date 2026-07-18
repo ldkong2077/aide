@@ -5,7 +5,7 @@
 
 import { isTestFile } from '../types/index.js'
 import { getLineNumber, isInNonCode } from '../core/utils.js'
-import type { Detector, DetectorContext, Issue } from '../types/index.js'
+import type { Detector, DetectorContext, Issue, Confidence } from '../types/index.js'
 
 export class HardcodedValueDetector implements Detector {
   rule = 'hardcoded-value'
@@ -91,6 +91,7 @@ export class HardcodedValueDetector implements Detector {
         message: `硬编码的 URL: "${url}"`,
         snippet: match[0].trim(),
         suggestion: '使用环境变量或配置文件存储 URL，如 process.env.API_URL',
+        confidence: 'medium' as Confidence,
       })
     }
   }
@@ -118,6 +119,7 @@ export class HardcodedValueDetector implements Detector {
         message: `硬编码的 IP 地址: "${ip}"`,
         snippet: match[0].trim(),
         suggestion: '使用环境变量或配置文件存储 IP 地址',
+        confidence: 'medium' as Confidence,
       })
     }
   }
@@ -150,6 +152,12 @@ export class HardcodedValueDetector implements Detector {
         const port = match[1]
         const line = getLineNumber(code, match.index!)
 
+        // 跳过 process.env || 默认值 模式（环境变量的 fallback 不是硬编码）
+        const lineStart = code.lastIndexOf('\n', match.index) + 1
+        const lineEnd = code.indexOf('\n', match.index)
+        const fullLine = code.slice(lineStart, lineEnd === -1 ? code.length : lineEnd)
+        if (/\bprocess\.env\b/.test(fullLine) && /\|\|/.test(fullLine.slice(0, match.index - lineStart))) continue
+
         if (sensitivePorts[port]) {
           issues.push({
             rule: this.rule,
@@ -160,6 +168,7 @@ export class HardcodedValueDetector implements Detector {
             message: `硬编码的${sensitivePorts[port]}端口: ${match[0]}`,
             snippet: match[0].trim(),
             suggestion: `使用环境变量存储${sensitivePorts[port]}端口，如 process.env.DB_PORT`,
+            confidence: 'medium' as Confidence,
           })
         }
       }
@@ -193,6 +202,7 @@ export class HardcodedValueDetector implements Detector {
           message: `硬编码的文件路径: "${path}"`,
           snippet: match[0].trim(),
           suggestion: '使用环境变量或 path.join() 构建文件路径',
+          confidence: 'low' as Confidence,
         })
       }
     }

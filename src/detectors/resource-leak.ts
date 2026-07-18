@@ -6,7 +6,7 @@
 import { stripComments, stripStrings } from '../core/type-inferencer.js'
 import { getLineNumber, escapeRegex } from '../core/utils.js'
 import { isTestFile } from '../types/index.js'
-import type { Detector, DetectorContext, Issue } from '../types/index.js'
+import type { Detector, DetectorContext, Issue, Confidence } from '../types/index.js'
 
 export class ResourceLeakDetector implements Detector {
   rule = 'resource-leak'
@@ -77,6 +77,7 @@ export class ResourceLeakDetector implements Detector {
               message: `文件可能未正确关闭: open() 未使用 with 语句且未调用 close()`,
               snippet: line,
               suggestion: '使用 with open(...) as f: 确保文件自动关闭',
+              confidence: 'medium' as Confidence,
             })
           }
         }
@@ -104,6 +105,7 @@ export class ResourceLeakDetector implements Detector {
               message: `数据库连接可能未关闭: ${varName}`,
               snippet: line,
               suggestion: '使用 with 语句或在 finally 块中调用 close()',
+              confidence: 'medium' as Confidence,
             })
           }
         }
@@ -146,6 +148,7 @@ export class ResourceLeakDetector implements Detector {
               message: `${type} 可能未正确关闭: ${varName}`,
               snippet: line,
               suggestion: `使用 ${varName}.destroy() 或 ${varName}.close() 关闭资源，或使用流式管道 pipe()`,
+              confidence: 'medium' as Confidence,
             })
           }
         }
@@ -173,6 +176,7 @@ export class ResourceLeakDetector implements Detector {
               message: `${type}可能未关闭: ${varName}`,
               snippet: line,
               suggestion: '在 finally 块中调用 close() 或使用连接池自动管理',
+              confidence: 'medium' as Confidence,
             })
           }
         }
@@ -221,6 +225,7 @@ export class ResourceLeakDetector implements Detector {
                 message: `Java ${type}可能未关闭: ${varName}`,
                 snippet: line,
                 suggestion: '使用 try-with-resources 语句确保资源自动关闭',
+                confidence: 'medium' as Confidence,
               })
             }
           }
@@ -263,6 +268,7 @@ export class ResourceLeakDetector implements Detector {
               message: `Go ${type}可能未关闭: ${varName}`,
               snippet: line,
               suggestion: `在打开资源后立即添加 defer ${varName}.Close() 确保资源关闭`,
+              confidence: 'medium' as Confidence,
             })
           }
         }
@@ -296,6 +302,7 @@ export class ResourceLeakDetector implements Detector {
             message: `Rust BufWriter 可能未 flush: ${varName}`,
             snippet: line,
             suggestion: '在程序结束前调用 .flush() 或使用 drop() 确保 BufWriter 数据写入磁盘',
+            confidence: 'medium' as Confidence,
           })
         }
       }
@@ -326,6 +333,7 @@ export class ResourceLeakDetector implements Detector {
             message: `PHP 文件句柄可能未关闭: ${varName}`,
             snippet: line,
             suggestion: '使用 fclose() 关闭文件句柄，或将文件操作放在 try/finally 块中',
+            confidence: 'medium' as Confidence,
           })
         }
       }
@@ -347,6 +355,7 @@ export class ResourceLeakDetector implements Detector {
             message: `PHP cURL 句柄可能未关闭: ${varName}`,
             snippet: line,
             suggestion: '使用 curl_close() 关闭 cURL 句柄',
+            confidence: 'medium' as Confidence,
           })
         }
       }
@@ -377,6 +386,7 @@ export class ResourceLeakDetector implements Detector {
             message: `Ruby 文件可能未关闭: ${varName}`,
             snippet: line,
             suggestion: '使用 File.open(path) { |f| ... } 块形式确保文件自动关闭',
+            confidence: 'medium' as Confidence,
           })
         }
       }
@@ -398,6 +408,7 @@ export class ResourceLeakDetector implements Detector {
             message: `Ruby 数据库连接可能未关闭: ${varName}`,
             snippet: line,
             suggestion: '在确保操作完成后调用 .close 关闭连接',
+            confidence: 'medium' as Confidence,
           })
         }
       }
