@@ -1,10 +1,12 @@
 name: Publish to npm (Trusted Publishing / OIDC)
 
 # 触发: 推送版本标签时发布, 例如 `git push origin v2.1.1`
+# 也可在 GitHub Actions 页面手动触发 (workflow_dispatch)
 on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
 
 # 关键权限: id-token: write 用于向 npm 申请 OIDC 令牌 (无需长期有效的 NPM_TOKEN)
 permissions:
